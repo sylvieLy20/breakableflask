@@ -6,6 +6,9 @@ jobs:
   Dependances:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+        
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -43,6 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: Dependances
     steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+       
       - name: Scan de l'image avec Trivy (vulnérabilités)
         run: |
           docker run --rm aquasec/trivy image --severity HIGH,CRITICAL my-app-test:latest || {
