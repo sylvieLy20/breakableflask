@@ -6,14 +6,28 @@ jobs:
     steps:
       - name: Dependances
         run: |
-          echo "ecrire ici le scrypt de contrôle des dépendances"
+          echo "Flask==3.0.3
+                Werkzeug==3.1.4
+                Jinja2==3.1.6
+                itsdangerous==2.2.0
+                click==8.1.7
+                MarkupSafe==2.1.5
+                pycryptodome==3.20.0
+                lxml==5.2.1"
   Dockerfile:
     runs-on: ubuntu-latest
     needs: Dependances
     steps:
       - name: Test Dockerfile
         run: |
-          echo "ecrire ici le scrypt de contrôle du Dockerfile"
+          echo "FROM python:3.7
+                WORKDIR /app
+                # Installe tout en root, conserve cache apt/pip
+                RUN apt-get update && apt-get install -y gcc libpq-dev
+                COPY . /app
+                RUN pip install -r requirements.txt
+                EXPOSE 4000
+                CMD ["python", "main.py"]"
   Deploy:
     runs-on: ubuntu-latest
     needs: Dockerfile
