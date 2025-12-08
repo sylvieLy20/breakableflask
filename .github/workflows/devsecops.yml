@@ -1,23 +1,89 @@
 name: Automatisation des tests DevSecOps
+
 on: push
+
 jobs:
   Dependances:
     runs-on: ubuntu-latest
     steps:
-      - name: Dependances
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Vérification de requirements.txt + installation des dépendances
         run: |
-          echo "ecrire ici le scrypt de contrôle des dépendances"
+          if [ ! -f requirements.txt ]; then
+            echo "requirements.txt manquant !"
+            exit 1
+          fi
+
+          python -m pip install --upgrade pip
+          echo "Installation des dépendances..."
+          pip install -r requirements.txt || {
+            echo "Échec de l'installation des dépendances"
+            exit 1
+          }
+
+          echo "Vérification des conflits de dépendances..."
+          pip check || {
+            echo "Conflits détectés dans les dépendances"
+            exit 1
+          }
+
+      - name: Scan de vulnérabilités avec Safety
+        run: |
+          pip install safety
+          safety check -r requirements.txt --full-report || {
+            echo "Vulnérabilités critiques détectées dans les dépendances"
+            exit 1
+          }
+
   Dockerfile:
     runs-on: ubuntu-latest
     needs: Dependances
     steps:
-      - name: Test Dockerfile
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Vérification de la présence du Dockerfile
         run: |
-          echo "ecrire ici le scrypt de contrôle du Dockerfile"
+          if [ ! -f Dockerfile ]; then
+            echo "Dockerfile manquant à la racine du projet !"
+            exit 1
+          fi
+          echo "Dockerfile trouvé"
+
+      - name: Lint du Dockerfile avec Hadolint
+        run: |
+          docker run --rm -i hadolint/hadolint < Dockerfile || {
+            echo "Erreurs de syntaxe/best practices dans le Dockerfile"
+            exit 1
+          }
+
+      - name: Test de build du Dockerfile
+        run: |
+          echo "Construction de l'image Docker (sans cache)..."
+          docker build --no-cache -t my-app-test:latest . || {
+            echo "Le Dockerfile ne build pas correctement !"
+            exit 1
+          }
+          echo "Build Docker réussi !"
+
+      - name: Scan de l'image avec Trivy (vulnérabilités)
+        run: |
+          docker run --rm aquasec/trivy image --severity HIGH,CRITICAL my-app-test:latest || {
+            echo "Vulnérabilités HIGH/CRITICAL détectées dans l'image"
+            exit 1
+          }
+
   Deploy:
     runs-on: ubuntu-latest
     needs: Dockerfile
     steps:
       - name: Deploy
         run: |
-          echo "Rien à faire ici. Votre application est prête à être déployée"
+          echo "Rien à faire ici. Votre application est prête à être déployée!"
