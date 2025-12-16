@@ -23,9 +23,9 @@ jobs:
         run: echo " Scan des dépendances réussi. Aucune vulnérabilité CRITICAL détectée."
 
       - name: Résultat du Contrôle
-        # S'exécute toujours
+       
         run: |
-          echo "Scan des dépendances terminé. Le rapport complet est visible dans les logs de l'étape Trivy."
+          echo "Scan des dépendances terminé."
   
   Dockerfile:
     runs-on: ubuntu-latest
@@ -37,18 +37,18 @@ jobs:
 
       - name: Construire l'Image
         run: |
-          echo "Construction de l'image Docker pour analyse..."
+          echo "Construction de l'image Docker"
           docker build -t mon-image-test:latest .
           
       - name: Scanner l'Image avec Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
           
-          echo "Scanning image mon-image-test:latest pour vulnérabilités OS..."
+          echo "Scanning image ..."
           trivy image --severity CRITICAL,HIGH,MEDIUM,LOW mon-image-test:latest
 
       - name: Résultat du Scan de l'Image
-        run: echo "Scan de l'image terminé. Le rapport complet est visible dans les logs de l'étape Trivy."
+        run: echo "Scan de l'image terminé."
 
 
   Deploy:
