@@ -1,5 +1,7 @@
 name: Automatisation des tests DevSecOps
+
 on: push
+
 jobs:
   Dependances:
     runs-on: ubuntu-latest
