@@ -13,48 +13,58 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          input: 'requirements.txt'
           severity: 'CRITICAL,HIGH,MEDIUM'
           format: 'table'
-          template: '@default'
-          
-      - name: Résultat du Contrôle
-        if: success()
-        run: echo " Scan des dépendances réussi. Aucune vulnérabilité CRITICAL détectée."
+          output: 'rapport-dependances.txt'
 
-      - name: Résultat du Contrôle
-       
-        run: |
-          echo "Scan des dépendances terminé."
-  
+      - name: Upload temporaire dependances
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmp-dep
+          path: rapport-dependances.txt
+
   Dockerfile:
     runs-on: ubuntu-latest
     needs: Dependances
     steps:
-
       - name: Checkout du Code
         uses: actions/checkout@v4
 
       - name: Construire l'Image
-        run: |
-          echo "Construction de l'image Docker"
-          docker build -t mon-image-test:latest .
+        run: docker build -t mon-image-test:latest .
           
       - name: Scanner l'Image avec Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-          
-          echo "Scanning image ..."
-          trivy image --severity CRITICAL,HIGH,MEDIUM,LOW mon-image-test:latest
+          trivy image --severity CRITICAL,HIGH,MEDIUM --format table --output rapport-image.txt mon-image-test:latest
 
-      - name: Résultat du Scan de l'Image
-        run: echo "Scan de l'image terminé."
+      - name: Upload temporaire image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmp-img
+          path: rapport-image.txt
 
-
-  Deploy:
+  # Nouveau job pour fusionner les rapports
+  Rapport-Final:
     runs-on: ubuntu-latest
-    needs: Dockerfile
+    needs: [Dependances, Dockerfile]
+    if: always()
     steps:
-      - name: Deploy
-        run: |
-          echo "Rien à faire ici. Votre application est prête à être déployée."
+      - name: Créer dossier rapports
+        run: mkdir rapports-securite
+
+      - name: Récupérer tous les fichiers
+        uses: actions/download-artifact@v4
+        with:
+          path: rapports-securite
+          pattern: tmp-*
+          merge-multiple: true
+
+      - name: Generer Archive Unique
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rapports-Complets-DevSecOps
+          path: rapports-securite/
+          retention-days: 7
